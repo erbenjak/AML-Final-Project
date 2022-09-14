@@ -21,11 +21,11 @@ class DiscriminatorModel(nn.Module):
 
     def __init__(self):
         # the first layer produces 64 filters
-        self.firstLayer  = ConvInstNormLeakyReluLayer(1,   64, False)
-        self.secondLayer = ConvInstNormLeakyReluLayer(64, 128, True )
-        self.thirdLayer  = ConvInstNormLeakyReluLayer(128,256, True )
-        self.fouthLayer  = ConvInstNormLeakyReluLayer(256,512, True )
-        self.fifthLayer  = nn.Conv2d(512,1,4,stride=2)
+        self.firstLayer = ConvInstNormLeakyReluLayer(1,   64, False)
+        self.secondLayer = ConvInstNormLeakyReluLayer(64, 128, True)
+        self.thirdLayer = ConvInstNormLeakyReluLayer(128, 256, True)
+        self.fourthLayer = ConvInstNormLeakyReluLayer(256, 512, True)
+        self.fifthLayer = nn.Conv2d(512, 1, 4, 2)
 
     def forward(self,x):
         x = self.firstLayer(x)
@@ -35,6 +35,7 @@ class DiscriminatorModel(nn.Module):
         x = self.fifthLayer(x)
         return x
 
+
 class ConvInstNormLeakyReluLayer(nn.Module):
     """
 
@@ -43,15 +44,14 @@ class ConvInstNormLeakyReluLayer(nn.Module):
         super().__init__()
         self.instance_norm_active = instance_norm_active
 
-        self.size_in  = size_in
+        self.size_in = size_in
         self.size_out = size_out
 
-        self.convolution = nn.Conv2d(size_in,size_out,4,stride=2)
-        self.inst_norm   = nn.InstanceNorm1d(size_out)
-        self.activation  = nn.LeakyReLU(0.2)
+        self.convolution = nn.Conv2d(size_in, size_out, 4, 2)
+        self.inst_norm = nn.InstanceNorm2d(size_out)
+        self.activation = nn.LeakyReLU(0.2)
 
-
-    def forward(self,x):
+    def forward(self, x):
         x = self.convolution(x)
 
         if self.instance_norm_active:
