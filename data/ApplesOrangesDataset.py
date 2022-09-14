@@ -48,8 +48,7 @@ class ApplesOrangesDataset(Dataset):
         B_image=Image.open(B_image_path).convert('RGB')
 
         """the transform is not yet realized as for now the unconverted images can be used"""
-
-        return A_image, B_image, A_image_path, B_image
+        return A_image, B_image, A_image_path, B_image_path
 
     def find_images_in_directory(directory):
         pathsToFoundImages=[]
