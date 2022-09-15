@@ -10,6 +10,7 @@ https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/eb6ae80412e23c09b43
 
 """
 
+
 class DiscriminatorNetGenerator:
     """
            The discriminator network is described in the original paper
@@ -17,29 +18,30 @@ class DiscriminatorNetGenerator:
            of filters.
     """
 
-class DiscriminatorModel(nn.Module):
+    def __init__(self):
+        self.created = True
 
+    @staticmethod
+    def create_discriminator():
+        return DiscriminatorModel();
+
+
+class DiscriminatorModel(nn.Module):
     def __init__(self):
         # the first layer produces 64 filters
-        self.firstLayer = ConvInstNormLeakyReluLayer(1,   64, False)
-        self.secondLayer = ConvInstNormLeakyReluLayer(64, 128, True)
-        self.thirdLayer = ConvInstNormLeakyReluLayer(128, 256, True)
-        self.fourthLayer = ConvInstNormLeakyReluLayer(256, 512, True)
-        self.fifthLayer = nn.Conv2d(512, 1, 4, 2)
+        model = [ConvInstNormLeakyReluLayer(1, 64, False),
+                 ConvInstNormLeakyReluLayer(64, 128, True),
+                 ConvInstNormLeakyReluLayer(128, 256, True),
+                 ConvInstNormLeakyReluLayer(256, 512, True),
+                 nn.Conv2d(512, 1, 4, 2)
+                 ]
+        self.model = nn.Sequential(*model)
 
-    def forward(self,x):
-        x = self.firstLayer(x)
-        x = self.secondLayer(x)
-        x = self.thirdLayer(x)
-        x = self.fouthLayer(x)
-        x = self.fifthLayer(x)
-        return x
+    def forward(self, x):
+        return self.model(x)
 
 
 class ConvInstNormLeakyReluLayer(nn.Module):
-    """
-
-    """
     def __init__(self, size_in, size_out, instance_norm_active):
         super().__init__()
         self.instance_norm_active = instance_norm_active
@@ -47,9 +49,10 @@ class ConvInstNormLeakyReluLayer(nn.Module):
         self.size_in = size_in
         self.size_out = size_out
 
-        self.convolution = nn.Conv2d(size_in, size_out, 4, 2)
-        self.inst_norm = nn.InstanceNorm2d(size_out)
-        self.activation = nn.LeakyReLU(0.2)
+        self.convolution = nn.Conv2d(size_in, size_out, 4, 2, padding=1)
+        # this could also be solved with a batchNorm
+        self.inst_norm = nn.InstanceNorm2d(size_out, affine=False, track_running_stats=False)
+        self.activation = nn.LeakyReLU(0.2, True)
 
     def forward(self, x):
         x = self.convolution(x)
