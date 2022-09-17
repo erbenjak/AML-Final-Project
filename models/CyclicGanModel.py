@@ -17,10 +17,9 @@ def lambda_rule(epoch):
     return lr_l
 
 
-class CyclicGanModel(nn.Module):
+class CyclicGanModel:
 
     def __init__(self, opt):
-        super(CyclicGanModel, self).__init__()
 
         # store all training options
         self.opt = opt
@@ -68,7 +67,7 @@ class CyclicGanModel(nn.Module):
                 itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.LearningRate,
                 betas=betas)
             self.optimizer_discriminator = torch.optim.Adam(
-                itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.LearningRate,
+                itertools.chain(self.netD_A.parameters(), self.netD_B.parameters()), lr=opt.LearningRate,
                 betas=betas)
 
             # we also need to define the correct schedulers which control our learning rate
@@ -110,7 +109,7 @@ class CyclicGanModel(nn.Module):
         self.optimizer_generator.zero_grad()
         # 2. calculate the actual losses of the generator networks
         total_generative_loss = self.calculate_loss_generators()
-        total_generative_loss.backwards()
+        total_generative_loss.backward(retain_graph=True)
         # 3. perform the actual optimization step
         self.optimizer_generator.step()
         # 3.5 turn gradients back on
@@ -126,22 +125,22 @@ class CyclicGanModel(nn.Module):
         # 2. calculate the actual losses of two discriminator networks
         discriminator_A_loss = self.calculate_loss_discriminator(self.netD_A, self.realB, self.fakeB)
         discriminator_B_loss = self.calculate_loss_discriminator(self.netD_B, self.realA, self.fakeA)
-        discriminator_A_loss.backwards()
-        discriminator_B_loss.backwards()
+        discriminator_A_loss.backward()
+        discriminator_B_loss.backward()
         # 3. perform the actual optimization step
         self.optimizer_discriminator.step()
 
     def calculate_loss_generators(self):
-        factor_gan_loss = self.opt.gan_factor
-        factor_cyclic_loss = self.opt.cyclic_factor
+        factor_gan_loss = self.opt.GanFactor
+        factor_cyclic_loss = self.opt.CyclicFactor
 
         # GAN losses
-        GAN_loss_netG_A = self.calculateGanLoss(self.netD_A(self.fakeB), True)
-        GAN_loss_netG_B = self.calculateGanLoss(self.netD_B(self.fakeA), True)
+        GAN_loss_netG_A = self.calculate_gan_loss(self.netD_A(self.fakeB), True)
+        GAN_loss_netG_B = self.calculate_gan_loss(self.netD_B(self.fakeA), True)
 
         # cyclic losses
-        cyclic_los_rec_A = self.calculateCyclicLoss(self.realA, self.reconA)
-        cyclic_los_rec_B = self.calculateCyclicLoss(self.realB, self.reconB)
+        cyclic_los_rec_A = self.calculate_cyclic_loss(self.realA, self.reconA)
+        cyclic_los_rec_B = self.calculate_cyclic_loss(self.realB, self.reconB)
 
         # summing up the losses
         loss_total = (GAN_loss_netG_A + GAN_loss_netG_B) * factor_gan_loss + (
@@ -159,7 +158,7 @@ class CyclicGanModel(nn.Module):
         return loss_methode(fake, real)
 
     def calculate_loss_discriminator(self, discriminator, real, fake):
-        loss_methode = GANLoss.to(self.device)
+        loss_methode = GANLoss().to(self.device)
         loss_real = loss_methode(discriminator(real), True)
         loss_fake = loss_methode(discriminator(fake), False)
 
@@ -170,5 +169,8 @@ class CyclicGanModel(nn.Module):
         self.scheduler_generators.step(current_epoch)
         self.scheduler_discriminators.step(current_epoch)
 
-    def get_device(self):
-        return self.device
+    def load_to_device(self):
+        self.netG_A.to(self.device)
+        self.netG_B.to(self.device)
+        self.netD_A.to(self.device)
+        self.netD_B.to(self.device)

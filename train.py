@@ -29,8 +29,7 @@ if __name__ == '__main__':
 
     # 2nd we need to create the models
     model = CyclicGanModel(opt)
-    device = model.get_device()
-    model.to(device)
+    device = model.load_to_device()
 
     # 2.5 initialize the weights of the model to a gaussian distribution
     def init_weights_gaussian(m):

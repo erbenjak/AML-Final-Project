@@ -30,7 +30,7 @@ class DiscriminatorModel(nn.Module):
     def __init__(self):
         super(DiscriminatorModel, self).__init__()
         # the first layer produces 64 filters
-        model = [ConvInstNormLeakyReluLayer(1, 64, False),
+        model = [ConvInstNormLeakyReluLayer(3, 64, False),
                  ConvInstNormLeakyReluLayer(64, 128, True),
                  ConvInstNormLeakyReluLayer(128, 256, True),
                  ConvInstNormLeakyReluLayer(256, 512, True),

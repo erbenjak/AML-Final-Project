@@ -21,6 +21,9 @@ class OptionsManager:
         parser.add_argument('--Beta1', type=float, default=0.9, help="The first beta param of ADAM")
         parser.add_argument('--Beta2', type=float, default=0.999, help="The second beta param of ADAM")
         parser.add_argument('--isRandomCrop', type=boolean_string, default=False, help="input transform")
+        parser.add_argument('--GanFactor', type=int, default=1, help="fraction of gan-loss in total loss")
+        parser.add_argument('--CyclicFactor', type=int, default=10, help="fraction of cyclic loss in total loss")
+
         return parser
 
     def load_all_options(self):
