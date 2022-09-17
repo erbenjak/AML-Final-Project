@@ -10,6 +10,12 @@ from models.GANLoss import GANLoss
 from models.GenerativeNetGenerator import GenerativeNetGenerator
 
 
+def lambda_rule(epoch):
+    # This is hardcoded for now 100 stable and 100 decaying epochs - FOR NOW ;)
+    lr_l = 1.0 - max(0, epoch + 0 - 100) / float(100 + 1)
+    return lr_l
+
+
 class CyclicGanModel:
 
     def __init__(self, opt):
@@ -31,11 +37,11 @@ class CyclicGanModel:
         self.reconA = None
         self.reconB = None
 
-        gen_net_producer = GenerativeNetGenerator(opt.generators_are_nine_block)
+        gen_net_producer = GenerativeNetGenerator(opt.GeneratorIsNineBlock)
         self.netG_A = gen_net_producer.create_generator()
         self.netG_B = gen_net_producer.create_generator()
 
-        if opt.is_training:
+        if opt.isTrain:
             # the discriminator networks are only required during training
             dis_net_producer = DiscriminatorNetGenerator()
             self.netD_A = dis_net_producer.create_discriminator()
@@ -43,25 +49,24 @@ class CyclicGanModel:
 
             # default with pytorch Adam implementation
             betas = (0.9, 0.999)
-            if opt.betaOne != 0.9 or opt.betaTwo != 0.999:
-                betas = (opt.betaOne, opt.betaTwo)
+            if opt.Beta1 != 0.9 or opt.Beta2 != 0.999:
+                betas = (opt.beta1, opt.beta2)
 
             # furthermore one needs to define optimizers
             self.optimizer_generator = torch.optim.Adam(
-                itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.learning_rate,
+                itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.LearningRate,
                 betas=betas)
             self.optimizer_discriminator = torch.optim.Adam(
-                itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.learning_rate,
+                itertools.chain(self.netG_A.parameters(), self.netG_B.parameters()), lr=opt.LearningRate,
                 betas=betas)
 
             # we also need to define the correct schedulers which control our learning rate
-            # - for now a step-function is used
-            self.scheduler_generators = torch.optim.lr_scheduler.StepLR(optimizer=self.optimizer_generator,
-                                                                        step_size=opt.num_epoches_till_lr_decay,
-                                                                        gamma=0.1)
-            self.scheduler_discriminators = torch.optim.lr_scheduler.StepLR(optimizer=self.optimizer_discriminator,
-                                                                            step_size=opt.num_epoches_till_lr_decay,
-                                                                            gamma=0.1)
+            # we followed the proposed in the reference paper and keep the lr constant for 100 epochs and then decline
+            # linearly over the next 100 epochs
+            self.scheduler_generators = torch.optim.lr_scheduler.LambdaLR(optimizer=self.optimizer_generator,
+                                                                          lr_lambda=lambda_rule)
+            self.scheduler_discriminators = torch.optim.lr_scheduler.LambdaLR(optimizer=self.optimizer_discriminator,
+                                                                              lr_lambda=lambda_rule)
 
     def load_input(self, inputImages):
         """The images are loaded and necessary preprocessing is performed on the data"""
@@ -142,7 +147,7 @@ class CyclicGanModel:
 
         # summing up the losses
         loss_total = (GAN_loss_netG_A + GAN_loss_netG_B) * factor_gan_loss + (
-                    cyclic_los_rec_A + cyclic_los_rec_B) * factor_cyclic_loss
+                cyclic_los_rec_A + cyclic_los_rec_B) * factor_cyclic_loss
 
         return loss_total
 
@@ -160,5 +165,5 @@ class CyclicGanModel:
         loss_real = loss_methode(discriminator(real), True)
         loss_fake = loss_methode(discriminator(fake), False)
 
-        complete_loss = (loss_real+loss_fake) * 0.5
+        complete_loss = (loss_real + loss_fake) * 0.5
         return complete_loss
