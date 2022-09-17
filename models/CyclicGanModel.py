@@ -4,6 +4,7 @@ import torch.optim
 import itertools
 from PIL import Image
 from random import randrange
+from torchvision import transforms
 
 from models.DiscriminatorNetGenerator import DiscriminatorNetGenerator
 from models.GANLoss import GANLoss
@@ -16,9 +17,11 @@ def lambda_rule(epoch):
     return lr_l
 
 
-class CyclicGanModel:
+class CyclicGanModel(nn.Module):
 
     def __init__(self, opt):
+        super(CyclicGanModel, self).__init__()
+
         # store all training options
         self.opt = opt
 
@@ -28,6 +31,14 @@ class CyclicGanModel:
         else:
             dev = "cpu"
         self.device = torch.device(dev)
+
+        # set correct preprocessing
+        if opt.isRandomCrop:
+            self.requiresRandomCrop = True
+            self.requiresCorrectScaling = False
+        else:
+            self.requiresRandomCrop = False
+            self.requiresCorrectScaling = True
 
         # initialize the kept data empty
         self.realA = None
@@ -74,19 +85,6 @@ class CyclicGanModel:
         # 1. crop the image for style-focused tasks
         # -OR-
         # 2. transform the image to the correct pixel dimensions
-        size_after_pre_pro = 250
-        if self.requiresRandomCrop:
-            for key, image in inputImages.items():
-                x, y = image.size
-                random_x_start = randrange(0, x - size_after_pre_pro)
-                random_y_start = randrange(0, y - size_after_pre_pro)
-                inputImages[key] = image.crop((random_x_start, random_y_start,
-                                               random_x_start + size_after_pre_pro,
-                                               random_y_start + size_after_pre_pro))
-        if self.requiresCorrectScalling:
-            inputImages['image_A'] = inputImages['image_A'].resize((size_after_pre_pro, size_after_pre_pro))
-            inputImages['image_B'] = inputImages['image_B'].resize((size_after_pre_pro, size_after_pre_pro))
-
         self.realA = inputImages['image_A'].to(self.device)
         self.realB = inputImages['image_B'].to(self.device)
 
@@ -167,3 +165,10 @@ class CyclicGanModel:
 
         complete_loss = (loss_real + loss_fake) * 0.5
         return complete_loss
+
+    def update_learning_rate(self, current_epoch):
+        self.scheduler_generators.step(current_epoch)
+        self.scheduler_discriminators.step(current_epoch)
+
+    def get_device(self):
+        return self.device

@@ -4,11 +4,13 @@ import pandas as pd
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+from torchvision import transforms
 import os
 """
     Therefore the Dataloader also needs to always provide 2 images. One from Dataset A and one from Dataset B.
     This implementation in specific is meant to get images of oranges and apples to tranform in between the two kind.
 """
+
 
 class ApplesOrangesDataset(Dataset):
     """Apples and Oranges Dataset"""
@@ -28,7 +30,10 @@ class ApplesOrangesDataset(Dataset):
         self.size_A = len(self.image_paths_A)
         self.size_B = len(self.image_paths_B)
 
-        self.transform = transform
+        self.requiresRandomCrop = False
+        self.requiresCorrectScaling = True
+
+        self.transform = transforms.Compose([transforms.ToTensor()])
 
     def __len__(self):
         """
@@ -46,20 +51,35 @@ class ApplesOrangesDataset(Dataset):
         A_image_path = self.image_paths_A[idx % self.size_A]
 
         """the image from b is choosen at random to not couple images up too much"""
-        index_B = random.randint(0,self.size_B)
+        index_B = random.randint(0, self.size_B)
         B_image_path = self.image_paths_B[index_B]
 
-        A_image=Image.open(A_image_path).convert('RGB')
-        B_image=Image.open(B_image_path).convert('RGB')
+        A_image = Image.open(A_image_path).convert('RGB')
+        B_image = Image.open(B_image_path).convert('RGB')
+
+        inputImages = {'image_A': A_image, 'image_B': B_image}
+
+        size_after_pre_pro = 256
+        if self.requiresRandomCrop:
+            for key, image in inputImages.items():
+                x, y = image.size
+                random_x_start = random.randrange(0, x - size_after_pre_pro)
+                random_y_start = random.randrange(0, y - size_after_pre_pro)
+                inputImages[key] = image.crop((random_x_start, random_y_start,
+                                               random_x_start + size_after_pre_pro,
+                                               random_y_start + size_after_pre_pro))
+        if self.requiresCorrectScaling:
+            inputImages['image_A'] = inputImages['image_A'].resize((size_after_pre_pro, size_after_pre_pro))
+            inputImages['image_B'] = inputImages['image_B'].resize((size_after_pre_pro, size_after_pre_pro))
 
         """the transform is not yet realized as for now the unconverted images can be used"""
-        return A_image, B_image, A_image_path, B_image_path
+        return [self.transform(inputImages['image_A']), self.transform(inputImages['image_B'])]
 
     def find_images_in_directory(self, directory):
         pathsToFoundImages=[]
 
         """check if the given path is a directoy"""
-        if os.path.isdir(directory)== False:
+        if not os.path.isdir(directory):
             return pathsToFoundImages
 
         """list all the found images"""
@@ -68,6 +88,5 @@ class ApplesOrangesDataset(Dataset):
         """now all the items need to get converted to specific paths"""
         for pathToFile in listOfFiles:
             if pathToFile.__contains__(".jpg"):
-                pathsToFoundImages.append(pathToFile)
-
+                pathsToFoundImages.append(os.path.join(directory, pathToFile))
         return pathsToFoundImages

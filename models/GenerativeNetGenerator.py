@@ -28,7 +28,7 @@ class GenerativeModel(nn.Module):
         super(GenerativeModel, self).__init__()
         self.is_nine_block_model = is_nine_block_model
         model = [nn.ReflectionPad2d(3),
-                 ConvInstNormReluLayer(1, 64, 7, 1, 0),
+                 ConvInstNormReluLayer(3, 64, 7, 1, 0),
                  ConvInstNormReluLayer(64, 128, 3, 2, 1),
                  ConvInstNormReluLayer(128, 256, 3, 2, 1),
                  ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
@@ -43,10 +43,10 @@ class GenerativeModel(nn.Module):
                       ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
                       ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False)]
 
-        model += [UppsamplingLayer(128, 64, 3, 2, 1, 1),
-                  UppsamplingLayer(64, 32, 3, 2, 1, 1)]
+        model += [UppsamplingLayer(256, 128, 3, 2, 1, 1),
+                  UppsamplingLayer(128, 64, 3, 2, 1, 1)]
         model += [nn.ReflectionPad2d(3)]
-        model += [nn.Conv2d(32, 3, kernel_size=7, padding=0)]
+        model += [nn.Conv2d(64, 3, kernel_size=7, padding=0)]
         model += [nn.Tanh()]
 
         self.model = nn.Sequential(*model)

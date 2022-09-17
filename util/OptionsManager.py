@@ -20,6 +20,7 @@ class OptionsManager:
         parser.add_argument("GeneratorIsNineBlock", type=boolean_string, help="determines size of gen-networks")
         parser.add_argument('--Beta1', type=float, default=0.9, help="The first beta param of ADAM")
         parser.add_argument('--Beta2', type=float, default=0.999, help="The second beta param of ADAM")
+        parser.add_argument('--isRandomCrop', type=boolean_string, default=False, help="input transform")
         return parser
 
     def load_all_options(self):
