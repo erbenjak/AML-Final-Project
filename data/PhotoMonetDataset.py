@@ -12,8 +12,7 @@ import os
 """
 
 
-class ApplesOrangesDataset(Dataset):
-    """Apples and Oranges Dataset"""
+class PhotoMonetDataset(Dataset):
     def __init__(self, opt, transform=None):
         # the root dir needs to be modified to have both paths
         rootDir = opt.PathToData
@@ -30,8 +29,8 @@ class ApplesOrangesDataset(Dataset):
         self.size_A = len(self.image_paths_A) - 1
         self.size_B = len(self.image_paths_B) - 1
 
-        self.requiresRandomCrop = False
-        self.requiresCorrectScaling = True
+        self.requiresRandomCrop = True
+        self.requiresCorrectScaling = False
 
         self.transform = transforms.Compose([transforms.ToTensor()])
 
@@ -39,7 +38,7 @@ class ApplesOrangesDataset(Dataset):
         """
         :return: the size of the bigger dataset -  if
         """
-        return max(len(self.image_paths_A), len(self.image_paths_B))
+        return min(len(self.image_paths_A) * 4, len(self.image_paths_B))
 
     def __getitem__(self, idx):
         """
@@ -60,11 +59,24 @@ class ApplesOrangesDataset(Dataset):
         inputImages = {'image_A': A_image, 'image_B': B_image}
 
         size_after_pre_pro = 256
+
         if self.requiresRandomCrop:
             for key, image in inputImages.items():
                 x, y = image.size
-                random_x_start = random.randrange(0, x - size_after_pre_pro)
-                random_y_start = random.randrange(0, y - size_after_pre_pro)
+
+                if x == size_after_pre_pro and y == size_after_pre_pro:
+                    continue
+
+                if x > size_after_pre_pro:
+                    random_x_start = random.randrange(0, x - size_after_pre_pro)
+                else:
+                    random_x_start = 0
+
+                if x > size_after_pre_pro:
+                    random_y_start = random.randrange(0, y - size_after_pre_pro)
+                else:
+                    random_y_start = 0
+
                 inputImages[key] = image.crop((random_x_start, random_y_start,
                                                random_x_start + size_after_pre_pro,
                                                random_y_start + size_after_pre_pro))

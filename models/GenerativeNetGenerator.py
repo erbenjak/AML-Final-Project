@@ -15,8 +15,9 @@ class GenerativeNetGenerator:
     """
            The generative networks are created in accordance with the notes in the original paper.
     """
+
     def __init__(self, is_nine_block_model):
-        self.is_nine_block_model=is_nine_block_model
+        self.is_nine_block_model = is_nine_block_model
 
     def create_generator(self):
         return GenerativeModel(self.is_nine_block_model)
@@ -24,9 +25,10 @@ class GenerativeNetGenerator:
 
 class GenerativeModel(nn.Module):
     def __init__(self, is_nine_block_model):
+        super(GenerativeModel, self).__init__()
         self.is_nine_block_model = is_nine_block_model
         model = [nn.ReflectionPad2d(3),
-                 ConvInstNormReluLayer(1, 64, 7, 1, 0),
+                 ConvInstNormReluLayer(3, 64, 7, 1, 0),
                  ConvInstNormReluLayer(64, 128, 3, 2, 1),
                  ConvInstNormReluLayer(128, 256, 3, 2, 1),
                  ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
@@ -41,10 +43,10 @@ class GenerativeModel(nn.Module):
                       ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
                       ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False)]
 
-        model += [UppsamplingLayer(128, 64, 3, 2, 1, 1),
-                  UppsamplingLayer(64, 32, 3, 2, 1, 1)]
+        model += [UppsamplingLayer(256, 128, 3, 2, 1, 1),
+                  UppsamplingLayer(128, 64, 3, 2, 1, 1)]
         model += [nn.ReflectionPad2d(3)]
-        model += [nn.Conv2d(32, 3, kernel_size=7, padding=0)]
+        model += [nn.Conv2d(64, 3, kernel_size=7, padding=0)]
         model += [nn.Tanh()]
 
         self.model = nn.Sequential(*model)
@@ -55,7 +57,7 @@ class GenerativeModel(nn.Module):
 
 class ConvInstNormReluLayer(nn.Module):
     def __init__(self, size_in, size_out, kernel_size, stride, padding):
-        super().__init__()
+        super(ConvInstNormReluLayer, self).__init__()
         self.size_in = size_in
         self.size_out = size_out
 
@@ -72,12 +74,12 @@ class ConvInstNormReluLayer(nn.Module):
 
 class UppsamplingLayer(nn.Module):
     def __init__(self, size_in, size_out, kernel_size, stride, padding, output_padding):
-        super().__init__()
+        super(UppsamplingLayer, self).__init__()
         self.size_in = size_in
         self.size_out = size_out
 
         self.convolution = nn.ConvTranspose2d(size_in, size_out, kernel_size, stride, padding,
-                                              padding_mode='reflect', output_padding=output_padding)
+                                              output_padding=output_padding)
         self.inst_norm = nn.BatchNorm2d(size_out, affine=True, track_running_stats=True)
         self.activation = nn.ReLU(True)
 
