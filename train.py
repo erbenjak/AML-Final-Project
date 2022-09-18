@@ -1,7 +1,8 @@
 import argparse
+import random
 import time
 import torch
-from torch.nn import init
+from torchvision import transforms
 
 from data.ApplesOrangesDataset import ApplesOrangesDataset
 from data.BatchDataLoader import BatchDataLoader
@@ -14,6 +15,19 @@ def find_dataset(options):
         return ApplesOrangesDataset(options)
     else:
         raise NotImplementedError
+
+
+def store_images(images, path, current_epoch):
+    # images are actually batches
+    batch_size = images['realA'].size()[0]
+    chosen_image = random.randint(1, batch_size) - 1
+
+    for key, image in images.items():
+        image = image[chosen_image]
+        real_image = transforms.ToPILImage()(image).convert("RGB")
+        storage_path = path + "\\" + str(key) + str(current_epoch) + ".png"
+        real_image.save(storage_path)
+
 
 if __name__ == '__main__':
     # 0.5 passing the arguments that were given
@@ -32,34 +46,29 @@ if __name__ == '__main__':
     device = model.load_to_device()
 
     # 2.5 initialize the weights of the model to a gaussian distribution
-    def init_weights_gaussian(m):
-        classname = m.__class__.__name__
-        # all linear and convolution layers need to have their weights initialized
-        if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
-            init.normal_(m.weight.data, 0.0, std=0.02)
-            # special case for the bias
-            if hasattr(m, 'bias') and m.bias is not None:
-                init.constant_(m.bias.data, 0.0)
-
-        elif classname.find('BatchNorm2d') != -1:
-            # special case batch-norm
-            init.normal_(m.weight.data, 1.0, 0.02)
-            init.constant_(m.bias.data, 0.0)
-    model.apply(init_weights_gaussian)
+    model.init_weights()
 
     # 3rd we need to do the actual training
     count_iterations = 0
 
     # hard coded for 200 epochs - FOR NOW ;)
-    for epoch in (0, 200):
+    for epoch in (1, 201):
         time_start = time.time()
-        # adapt learning rate:
-        model.update_learning_rate(epoch)
+        iteration_round = 0
 
         for index, collection in enumerate(dataloader):
             time_start_iteration = time.time()
-            print(collection)
             model.load_input({'image_A': collection[0], 'image_B': collection[1]})
             model.train_parameter()
+            iteration_round += 1
+            if iteration_round % 100 == 1:
+                print("completed a run of iteration #" + str(iteration_round))
 
-            # 4th storing the model and so on
+        # adapt learning rate:
+        model.update_learning_rate(epoch)
+
+        # 4th the model will be stored by at every 5th and the images will be stored for further inspection
+        if epoch % 10 == 1:
+            print("Saving the model and corresponding images at epoch #" + str(epoch))
+            latest_images = model.get_latest_images()
+            store_images(latest_images, opt.ImageStoragePath, epoch)

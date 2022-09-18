@@ -14,6 +14,7 @@ class OptionsManager:
     @staticmethod
     def load_default_options(parser):
         parser.add_argument("PathToData", help="the path needs to have the correct sub-folders")
+        parser.add_argument("ImageStoragePath", help="the path for storing the images")
         parser.add_argument("LearningRate", type=float, default=0.1, help="the used learning rate")
         parser.add_argument("DatasetName", help="the name of the dataset [Apples2Oranges, ...]")
         parser.add_argument("isTrain", type=boolean_string, default=True, help="Puts the net into training mode")
@@ -23,7 +24,6 @@ class OptionsManager:
         parser.add_argument('--isRandomCrop', type=boolean_string, default=False, help="input transform")
         parser.add_argument('--GanFactor', type=int, default=1, help="fraction of gan-loss in total loss")
         parser.add_argument('--CyclicFactor', type=int, default=10, help="fraction of cyclic loss in total loss")
-
         return parser
 
     def load_all_options(self):

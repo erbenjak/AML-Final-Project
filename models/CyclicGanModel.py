@@ -5,6 +5,7 @@ import itertools
 from PIL import Image
 from random import randrange
 from torchvision import transforms
+from torch.nn import init
 
 from models.DiscriminatorNetGenerator import DiscriminatorNetGenerator
 from models.GANLoss import GANLoss
@@ -15,6 +16,13 @@ def lambda_rule(epoch):
     # This is hardcoded for now 100 stable and 100 decaying epochs - FOR NOW ;)
     lr_l = 1.0 - max(0, epoch + 0 - 100) / float(100 + 1)
     return lr_l
+
+
+def set_requires_grad(net, requires_grad):
+    # A custom methode is necessary as requires_grad_ is an inplace operation and
+    # changes the version making a second backward pass illegal
+    for param in net.parameters():
+        param.requires_grad = requires_grad
 
 
 class CyclicGanModel:
@@ -103,8 +111,8 @@ class CyclicGanModel:
 
         # II. Optimize the generator networks
         # 0.5 since the discriminators do not require gradient during training of the generators they are turned off
-        self.netD_A.requires_grad_(False)
-        self.netD_B.requires_grad_(False)
+        set_requires_grad(self.netD_A, False)
+        set_requires_grad(self.netD_B, False)
         # 1. reset the gradients
         self.optimizer_generator.zero_grad()
         # 2. calculate the actual losses of the generator networks
@@ -113,8 +121,8 @@ class CyclicGanModel:
         # 3. perform the actual optimization step
         self.optimizer_generator.step()
         # 3.5 turn gradients back on
-        self.netD_A.requires_grad_(True)
-        self.netD_B.requires_grad_(True)
+        set_requires_grad(self.netD_A, True)
+        set_requires_grad(self.netD_B, True)
 
         # Note here one could further improve as in the project from the paper by using an image buffer for actually
         # choosing old fake images sometimes
@@ -159,8 +167,9 @@ class CyclicGanModel:
 
     def calculate_loss_discriminator(self, discriminator, real, fake):
         loss_methode = GANLoss().to(self.device)
+
         loss_real = loss_methode(discriminator(real), True)
-        loss_fake = loss_methode(discriminator(fake), False)
+        loss_fake = loss_methode(discriminator(fake.detach()), False)
 
         complete_loss = (loss_real + loss_fake) * 0.5
         return complete_loss
@@ -174,3 +183,27 @@ class CyclicGanModel:
         self.netG_B.to(self.device)
         self.netD_A.to(self.device)
         self.netD_B.to(self.device)
+
+    def init_weights(self):
+        def init_weights_gaussian(m):
+            classname = m.__class__.__name__
+            # all linear and convolution layers need to have their weights initialized
+            if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
+                init.normal_(m.weight.data, 0.0, std=0.02)
+                # special case for the bias
+                if hasattr(m, 'bias') and m.bias is not None:
+                    init.constant_(m.bias.data, 0.0)
+
+            elif classname.find('BatchNorm2d') != -1:
+                # special case batch-norm
+                init.normal_(m.weight.data, 1.0, 0.02)
+                init.constant_(m.bias.data, 0.0)
+
+        self.netG_A.apply(init_weights_gaussian)
+        self.netG_B.apply(init_weights_gaussian)
+        self.netD_A.apply(init_weights_gaussian)
+        self.netD_B.apply(init_weights_gaussian)
+
+    def get_latest_images(self):
+        return {"realA": self.realA, "fakeA": self.fakeA, "reconA": self.reconA,
+                "realB": self.realB, "fakeB": self.fakeB, "reconB": self.reconB}

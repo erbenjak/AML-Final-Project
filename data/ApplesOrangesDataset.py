@@ -39,7 +39,7 @@ class ApplesOrangesDataset(Dataset):
         """
         :return: the size of the bigger dataset -  if
         """
-        return max(len(self.image_paths_A),len(self.image_paths_B))
+        return max(len(self.image_paths_A), len(self.image_paths_B))
 
     def __getitem__(self, idx):
         """
