@@ -1,11 +1,10 @@
-import argparse
 import random
 import time
-import torch
 from torchvision import transforms
 
 from data.ApplesOrangesDataset import ApplesOrangesDataset
 from data.BatchDataLoader import BatchDataLoader
+from data.PhotoMonetDataset import PhotoMonetDataset
 from models.CyclicGanModel import CyclicGanModel
 from util.OptionsManager import OptionsManager
 
@@ -13,19 +12,21 @@ from util.OptionsManager import OptionsManager
 def find_dataset(options):
     if options.DatasetName == 'Apples2Oranges':
         return ApplesOrangesDataset(options)
+    if options.DatasetName == 'Photo2Monet':
+        return PhotoMonetDataset(options)
     else:
         raise NotImplementedError
 
 
 def store_images(images, path, current_epoch):
     # images are actually batches
-    batch_size = images['realA'].size()[0]
+    batch_size = images['A_real'].size()[0]
     chosen_image = random.randint(1, batch_size) - 1
 
     for key, image in images.items():
         image = image[chosen_image]
         real_image = transforms.ToPILImage()(image).convert("RGB")
-        storage_path = path + "\\" + str(key) + str(current_epoch) + ".png"
+        storage_path = path + "\\" + str(key) + str(current_epoch) + ".jpg"
         real_image.save(storage_path)
 
 
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     count_iterations = 0
 
     # hard coded for 200 epochs - FOR NOW ;)
-    for epoch in (1, 201):
+    for epoch in range(1, 201):
         time_start = time.time()
         iteration_round = 0
 
@@ -61,14 +62,26 @@ if __name__ == '__main__':
             model.load_input({'image_A': collection[0], 'image_B': collection[1]})
             model.train_parameter()
             iteration_round += 1
-            if iteration_round % 100 == 1:
+            if iteration_round % 250 == 1:
                 print("completed a run of iteration #" + str(iteration_round))
 
         # adapt learning rate:
         model.update_learning_rate(epoch)
 
+        end_time = time.time()
+        print("epoch took:" + str(end_time-time_start) + " seconds")
+
         # 4th the model will be stored by at every 5th and the images will be stored for further inspection
         if epoch % 10 == 1:
-            print("Saving the model and corresponding images at epoch #" + str(epoch))
+            print("Saving some images at epoch #" + str(epoch))
             latest_images = model.get_latest_images()
             store_images(latest_images, opt.ImageStoragePath, epoch)
+
+        if epoch == 5:
+            # one early storage call - for debugging purposes
+            print("Saving the model at epoch #" + str(epoch))
+            model.save_progress(epoch)
+
+        if epoch % 25 == 0:
+            print("Saving the model at epoch #" + str(epoch))
+            model.save_progress(epoch)

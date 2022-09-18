@@ -1,10 +1,6 @@
-import torch.nn as nn
-import numpy as np
 import torch.optim
 import itertools
-from PIL import Image
-from random import randrange
-from torchvision import transforms
+import os
 from torch.nn import init
 
 from models.DiscriminatorNetGenerator import DiscriminatorNetGenerator
@@ -117,13 +113,14 @@ class CyclicGanModel:
         self.optimizer_generator.zero_grad()
         # 2. calculate the actual losses of the generator networks
         total_generative_loss = self.calculate_loss_generators()
-        total_generative_loss.backward(retain_graph=True)
+        total_generative_loss.backward()
         # 3. perform the actual optimization step
         self.optimizer_generator.step()
         # 3.5 turn gradients back on
         set_requires_grad(self.netD_A, True)
         set_requires_grad(self.netD_B, True)
 
+        # ToDo: create Image Buffer
         # Note here one could further improve as in the project from the paper by using an image buffer for actually
         # choosing old fake images sometimes
 
@@ -205,5 +202,22 @@ class CyclicGanModel:
         self.netD_B.apply(init_weights_gaussian)
 
     def get_latest_images(self):
-        return {"realA": self.realA, "fakeA": self.fakeA, "reconA": self.reconA,
-                "realB": self.realB, "fakeB": self.fakeB, "reconB": self.reconB}
+        return {"A_real": self.realA, "A_fake": self.fakeA, "A_recon": self.reconA,
+                "B_real": self.realB, "B_fake": self.fakeB, "B_recon": self.reconB}
+
+    def save_net(self, epoch, net, net_name):
+        filename = str(self.opt.DatasetName) + "_" + net_name + "_" + str(epoch)
+        save_path = os.path.join(self.opt.ModelStoragePath, filename)
+
+        if torch.cuda.is_available():
+            # the model is moved onto the cpu and then back onto the gpu to avoid memory issues
+            torch.save(net.cpu().state_dict(), save_path)
+            net.cuda(0)
+        else:
+            torch.save(net.cpu().state_dict(), save_path)
+
+    def save_progress(self, epoch):
+        self.save_net(epoch, self.netG_A, "netG_A")
+        self.save_net(epoch, self.netG_B, "netG_B")
+        self.save_net(epoch, self.netD_A, "netD_A")
+        self.save_net(epoch, self.netD_B, "netD_B")

@@ -15,6 +15,7 @@ class OptionsManager:
     def load_default_options(parser):
         parser.add_argument("PathToData", help="the path needs to have the correct sub-folders")
         parser.add_argument("ImageStoragePath", help="the path for storing the images")
+        parser.add_argument("ModelStoragePath", help="the path for storing the learning progress")
         parser.add_argument("LearningRate", type=float, default=0.1, help="the used learning rate")
         parser.add_argument("DatasetName", help="the name of the dataset [Apples2Oranges, ...]")
         parser.add_argument("isTrain", type=boolean_string, default=True, help="Puts the net into training mode")
