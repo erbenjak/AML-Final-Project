@@ -31,17 +31,17 @@ class GenerativeModel(nn.Module):
                  ConvInstNormReluLayer(3, 64, 7, 1, 0),
                  ConvInstNormReluLayer(64, 128, 3, 2, 1),
                  ConvInstNormReluLayer(128, 256, 3, 2, 1),
-                 ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
-                 ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
-                 ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
-                 ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
-                 ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
-                 ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False)]
+                 ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False),
+                 ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False),
+                 ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False),
+                 ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False),
+                 ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False),
+                 ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False)]
 
         if self.is_nine_block_model:
-            model += [ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
-                      ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False),
-                      ResnetBlock(256, 'reflect', nn.BatchNorm2d, False, False)]
+            model += [ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False),
+                      ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False),
+                      ResnetBlock(256, 'reflect', nn.InstanceNorm2d, False, False)]
 
         model += [UppsamplingLayer(256, 128, 3, 2, 1, 1),
                   UppsamplingLayer(128, 64, 3, 2, 1, 1)]
@@ -63,7 +63,7 @@ class ConvInstNormReluLayer(nn.Module):
 
         self.convolution = nn.Conv2d(size_in, size_out, kernel_size, stride, padding, padding_mode='reflect')
 
-        self.inst_norm = nn.BatchNorm2d(size_out, affine=True, track_running_stats=True)
+        self.inst_norm = nn.InstanceNorm2d(size_out, affine=False, track_running_stats=False)
         self.activation = nn.ReLU(True)
 
     def forward(self, x):
@@ -80,7 +80,7 @@ class UppsamplingLayer(nn.Module):
 
         self.convolution = nn.ConvTranspose2d(size_in, size_out, kernel_size, stride, padding,
                                               output_padding=output_padding)
-        self.inst_norm = nn.BatchNorm2d(size_out, affine=True, track_running_stats=True)
+        self.inst_norm = nn.InstanceNorm2d(size_out, affine=False, track_running_stats=False)
         self.activation = nn.ReLU(True)
 
     def forward(self, x):
