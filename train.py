@@ -1,10 +1,12 @@
 import random
 import time
+import numpy as np
 from torchvision import transforms
 
 from data.ApplesOrangesDataset import ApplesOrangesDataset
 from data.BatchDataLoader import BatchDataLoader
 from data.PhotoMonetDataset import PhotoMonetDataset
+from data.PhotoVanGoghDataset import PhotoVanGoghDataset
 from models.CyclicGanModel import CyclicGanModel
 from util.OptionsManager import OptionsManager
 
@@ -14,6 +16,8 @@ def find_dataset(options):
         return ApplesOrangesDataset(options)
     if options.DatasetName == 'Photo2Monet':
         return PhotoMonetDataset(options)
+    if options.DatasetName == 'Photo2VanGogh':
+        return PhotoVanGoghDataset(options)
     else:
         raise NotImplementedError
 
@@ -28,6 +32,18 @@ def store_images(images, path, current_epoch):
         real_image = transforms.ToPILImage()(image).convert("RGB")
         storage_path = path + "\\" + str(key) + str(current_epoch) + ".jpg"
         real_image.save(storage_path)
+
+
+def calculate_epoch_loss_and_store(losses, epoch, path):
+    loss_reshaped = losses.reshape(-1, 7)
+    losses_averaged = np.mean(loss_reshaped, axis=0)
+
+    if epoch > 1:
+        old_losses = np.load(path)
+        losses_averaged = np.append(old_losses, losses_averaged)
+        losses_averaged = losses_averaged.reshape(-1, 7)
+
+    np.save(path, losses_averaged)
 
 
 if __name__ == '__main__':
@@ -57,19 +73,26 @@ if __name__ == '__main__':
         time_start = time.time()
         iteration_round = 0
 
+        loss_storage = np.array([])
+
         for index, collection in enumerate(dataloader):
             time_start_iteration = time.time()
             model.load_input({'image_A': collection[0], 'image_B': collection[1]})
             model.train_parameter()
+            loss_storage = np.append(loss_storage, model.get_losses())
             iteration_round += 1
+
             if iteration_round % 250 == 1:
                 print("completed a run of iteration #" + str(iteration_round))
 
         # adapt learning rate:
         model.update_learning_rate(epoch)
 
+        # store losses for later analysis
+        calculate_epoch_loss_and_store(loss_storage, epoch, opt.LossStoragePath)
+
         end_time = time.time()
-        print("epoch took:" + str(end_time-time_start) + " seconds")
+        print("epoch took:" + str(end_time - time_start) + " seconds")
 
         # 4th the model will be stored by at every 5th and the images will be stored for further inspection
         if epoch % 10 == 1:

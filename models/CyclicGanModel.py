@@ -2,10 +2,12 @@ import torch.optim
 import itertools
 import os
 from torch.nn import init
+import numpy as np
 
 from models.DiscriminatorNetGenerator import DiscriminatorNetGenerator
 from models.GANLoss import GANLoss
 from models.GenerativeNetGenerator import GenerativeNetGenerator
+from models.ImageBuffer import ImageBuffer
 
 
 def lambda_rule(epoch):
@@ -50,6 +52,22 @@ class CyclicGanModel:
         self.fakeB = None
         self.reconA = None
         self.reconB = None
+
+        # create storage for losses
+        self.GAN_loss_netG_A = None
+        self.GAN_loss_netG_B = None
+
+        self.cyclic_los_rec_A = None
+        self.cyclic_los_rec_B = None
+
+        self.loss_total_generators = None
+
+        self.discriminator_A_loss = None
+        self.discriminator_B_loss = None
+
+        # creating the image buffers
+        self.bufferD_A = ImageBuffer(opt)
+        self.bufferD_B = ImageBuffer(opt)
 
         gen_net_producer = GenerativeNetGenerator(opt.GeneratorIsNineBlock)
         self.netG_A = gen_net_producer.create_generator()
@@ -120,18 +138,17 @@ class CyclicGanModel:
         set_requires_grad(self.netD_A, True)
         set_requires_grad(self.netD_B, True)
 
-        # ToDo: create Image Buffer
-        # Note here one could further improve as in the project from the paper by using an image buffer for actually
-        # choosing old fake images sometimes
-
         # III. Optimize the discriminator networks
         # 1. reset the gradients
         self.optimizer_discriminator.zero_grad()
         # 2. calculate the actual losses of two discriminator networks
-        discriminator_A_loss = self.calculate_loss_discriminator(self.netD_A, self.realB, self.fakeB)
-        discriminator_B_loss = self.calculate_loss_discriminator(self.netD_B, self.realA, self.fakeA)
-        discriminator_A_loss.backward()
-        discriminator_B_loss.backward()
+        # 2.1 to reduce oscillation an image buffer is used the buffer is used here
+        fakeA_temp = self.bufferD_A.create_mini_batch_from_buffer(self.fakeA)
+        fakeB_temp = self.bufferD_B.create_mini_batch_from_buffer(self.fakeB)
+        self.discriminator_A_loss = self.calculate_loss_discriminator(self.netD_A, self.realB, fakeB_temp)
+        self.discriminator_B_loss = self.calculate_loss_discriminator(self.netD_B, self.realA, fakeA_temp)
+        self.discriminator_A_loss.backward()
+        self.discriminator_B_loss.backward()
         # 3. perform the actual optimization step
         self.optimizer_discriminator.step()
 
@@ -140,18 +157,18 @@ class CyclicGanModel:
         factor_cyclic_loss = self.opt.CyclicFactor
 
         # GAN losses
-        GAN_loss_netG_A = self.calculate_gan_loss(self.netD_A(self.fakeB), True)
-        GAN_loss_netG_B = self.calculate_gan_loss(self.netD_B(self.fakeA), True)
+        self.GAN_loss_netG_A = self.calculate_gan_loss(self.netD_A(self.fakeB), True)
+        self.GAN_loss_netG_B = self.calculate_gan_loss(self.netD_B(self.fakeA), True)
 
         # cyclic losses
-        cyclic_los_rec_A = self.calculate_cyclic_loss(self.realA, self.reconA)
-        cyclic_los_rec_B = self.calculate_cyclic_loss(self.realB, self.reconB)
+        self.cyclic_los_rec_A = self.calculate_cyclic_loss(self.realA, self.reconA)
+        self.cyclic_los_rec_B = self.calculate_cyclic_loss(self.realB, self.reconB)
 
         # summing up the losses
-        loss_total = (GAN_loss_netG_A + GAN_loss_netG_B) * factor_gan_loss + (
-                cyclic_los_rec_A + cyclic_los_rec_B) * factor_cyclic_loss
+        self.loss_total_generators = (self.GAN_loss_netG_A + self.GAN_loss_netG_B) * factor_gan_loss + (
+                self.cyclic_los_rec_A + self.cyclic_los_rec_B) * factor_cyclic_loss
 
-        return loss_total
+        return self.loss_total_generators
 
     def calculate_gan_loss(self, prediction, real):
         loss_methode = GANLoss().to(self.device)
@@ -221,3 +238,12 @@ class CyclicGanModel:
         self.save_net(epoch, self.netG_B, "netG_B")
         self.save_net(epoch, self.netD_A, "netD_A")
         self.save_net(epoch, self.netD_B, "netD_B")
+
+    def get_losses(self):
+        return np.hstack((self.GAN_loss_netG_A.detach().cpu().numpy(),
+                          self.GAN_loss_netG_B.detach().cpu().numpy(),
+                          self.cyclic_los_rec_A.detach().cpu().numpy(),
+                          self.cyclic_los_rec_B.detach().cpu().numpy(),
+                          self.loss_total_generators.detach().cpu().numpy(),
+                          self.discriminator_A_loss.detach().cpu().numpy(),
+                          self.discriminator_B_loss.detach().cpu().numpy()))
