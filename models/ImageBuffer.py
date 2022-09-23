@@ -39,4 +39,10 @@ class ImageBuffer:
         # the minibatch still needs to be bundles to a tensor
         if input_images.size()[0] == 1:
             return torch.cat(mini_batch, 0).unsqueeze(0)
+
+        idx = 0
+        for image in mini_batch:
+            mini_batch[idx] = image.unsqueeze(0)
+            idx += 1
+
         return torch.cat(mini_batch, 0)

@@ -1,19 +1,14 @@
 import torch
 import torch.nn as nn
 
-"""This class will generate the discriminator networks as
-proposed in the original paper. While doing so it tries to stay as flexible as possible
+"""This class will generate the generators. It tries to stay as flexible as possible
 to allow for improvements later on.
-
--> the implementation of the paper can be found under: 
-https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/eb6ae80412e23c09b4317b04d889f1af27526d2d/models/networks.py#L542
-
 """
 
 
 class GenerativeNetGenerator:
     """
-           The generative networks are created in accordance with the notes in the original paper.
+           The generative networks are created in accordance with the notes in the report paper.
     """
 
     def __init__(self, is_nine_block_model):
@@ -87,6 +82,12 @@ class UppsamplingLayer(nn.Module):
         x = self.convolution(x)
         x = self.inst_norm(x)
         return self.activation(x)
+
+#####################################################################
+################ NOT SELF IMPLEMENTED ###############################
+#####################################################################
+
+### the resenet block code has been adapted from: https://github.com/jcjohnson/fast-neural-style)
 
 
 class ResnetBlock(nn.Module):

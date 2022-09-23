@@ -2,7 +2,7 @@ import torch
 
 
 class BatchDataLoader:
-    """Wrapper class used for loading a batch of images from a given dataset"""
+    """Wrapper class used for loading a batch of images from a given dataset. Allows for parallel loading for batches > 1"""
 
     def __init__(self, dataset, batch_size, require_shuffle):
         self.dataset = dataset

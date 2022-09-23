@@ -56,7 +56,10 @@ if __name__ == '__main__':
     print("The size of the dataset is as follows: " + str(dataset_size))
 
     # 1.5 create a dataloader which is able to load the data in batches in parallel
-    dataloader = BatchDataLoader(dataset, batch_size=1, require_shuffle=False)
+    dataloader = BatchDataLoader(dataset, batch_size=opt.BatchSize, require_shuffle=False)
+    print("The currently used batch size is: " + str(opt.BatchSize))
+
+    print("current learning rate" + str(opt.LearningRate))
 
     # 2nd we need to create the models
     model = CyclicGanModel(opt)
