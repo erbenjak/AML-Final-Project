@@ -222,6 +222,14 @@ class CyclicGanModel:
         return {"A_real": self.realA, "A_fake": self.fakeA, "A_recon": self.reconA,
                 "B_real": self.realB, "B_fake": self.fakeB, "B_recon": self.reconB}
 
+    def load_net(self, epoch, net, net_name):
+        filename = str(self.opt.DatasetName) + "_" + net_name + "_" + str(epoch)
+        load_path = os.path.join(self.opt.ModelStoragePath, filename)
+
+        # the model is loaded and moved onto the gpu
+        net.load_state_dict(torch.load(load_path))
+        net.to(self.device)
+
     def save_net(self, epoch, net, net_name):
         filename = str(self.opt.DatasetName) + "_" + net_name + "_" + str(epoch)
         save_path = os.path.join(self.opt.ModelStoragePath, filename)
@@ -238,6 +246,13 @@ class CyclicGanModel:
         self.save_net(epoch, self.netG_B, "netG_B")
         self.save_net(epoch, self.netD_A, "netD_A")
         self.save_net(epoch, self.netD_B, "netD_B")
+
+    def load_progress(self, epoch):
+        self.load_net(epoch, self.netG_A, "netG_A")
+        self.load_net(epoch, self.netG_B, "netG_B")
+        if self.opt.isTrain:
+            self.load_net(epoch, self.netD_A, "netD_A")
+            self.load_net(epoch, self.netD_B, "netD_B")
 
     def get_losses(self):
         return np.hstack((self.GAN_loss_netG_A.detach().cpu().numpy(),

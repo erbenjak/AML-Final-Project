@@ -26,7 +26,8 @@ class OptionsManager:
         parser.add_argument('--isRandomCrop', type=boolean_string, default=False, help="input transform")
         parser.add_argument('--GanFactor', type=int, default=1, help="fraction of gan-loss in total loss")
         parser.add_argument('--CyclicFactor', type=int, default=10, help="fraction of cyclic loss in total loss")
-        parser.add_argument('--ImageBufferSize', type=int, default=50, help="size  of the used image buffer")
+        parser.add_argument('--ImageBufferSize', type=int, default=100, help="size  of the used image buffer")
+        parser.add_argument('--BatchSize', type=int, default=2, help="size of the processed batches ")
         return parser
 
     def load_all_options(self):
