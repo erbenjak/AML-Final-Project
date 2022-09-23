@@ -1,21 +1,13 @@
 import torch
 import torch.nn as nn
 
-"""This class will generate the discriminator networks as
-proposed in the original paper. While doing so it tries to stay as flexible as possible
-to allow for improvements later on.
-
--> the implementation of the paper can be found under: 
-https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/eb6ae80412e23c09b4317b04d889f1af27526d2d/models/networks.py#L542
-
-"""
+"""This class will generate the discriminator networks."""
 
 
 class DiscriminatorNetGenerator:
     """
-           The discriminator network is described in the original paper
-           it uses PatchGAN-architecture. It uses the proposed amounts
-           of filters.
+           The discriminator network is described in the corresponding report paper
+           it uses PatchGAN-architecture.
     """
 
     def __init__(self):

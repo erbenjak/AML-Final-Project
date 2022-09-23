@@ -8,7 +8,7 @@ from torchvision import transforms
 import os
 """
     Therefore the Dataloader also needs to always provide 2 images. One from Dataset A and one from Dataset B.
-    This implementation in specific is meant to get images of oranges and apples to tranform in between the two kind.
+    This implementation in specific is meant to get photographs and monet paintings to transform in between the two kind.
 """
 
 

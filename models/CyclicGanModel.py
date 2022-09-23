@@ -9,9 +9,11 @@ from models.GANLoss import GANLoss
 from models.GenerativeNetGenerator import GenerativeNetGenerator
 from models.ImageBuffer import ImageBuffer
 
-
+"""
+Helps with decaying the learning rate 
+"""
 def lambda_rule(epoch):
-    # This is hardcoded for now 100 stable and 100 decaying epochs - FOR NOW ;)
+    # This is hardcoded for now 100 stable and 100 decaying epochs
     lr_l = 1.0 - max(0, epoch + 0 - 100) / float(100 + 1)
     return lr_l
 
@@ -22,6 +24,9 @@ def set_requires_grad(net, requires_grad):
     for param in net.parameters():
         param.requires_grad = requires_grad
 
+"""
+Main model class controls the learning and testing of the cyclic Gan. Organizes the 4 networks.
+"""
 
 class CyclicGanModel:
 

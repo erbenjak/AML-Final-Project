@@ -8,7 +8,7 @@ from torchvision import transforms
 import os
 """
     Therefore the Dataloader also needs to always provide 2 images. One from Dataset A and one from Dataset B.
-    This implementation in specific is meant to get images of oranges and apples to tranform in between the two kind.
+    This implementation in specific is meant to get photos and VanGogh paintings.
 """
 
 
@@ -45,7 +45,6 @@ class PhotoVanGoghDataset(Dataset):
         needs to return an image from A and a random image from B
         + both their paths for debugging purposes
         :param idx: index of the image to be picked
-        :return:
         """
         A_image_path = self.image_paths_A[idx % self.size_A]
 
